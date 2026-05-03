@@ -3,9 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Botim Pay Pro - Final</title>
+    <meta name="apple-mobile-web-app-title" content="Botim Pay">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Botim%20Pay%20Pro%22,%22short_name%22:%22Botim%22,%22start_url%22:%22index.html%22,%22display%22:%22standalone%22,%22background_color%22:%22#0c0d0f%22,%22theme_color%22:%22#2141FF%22,%22icons%22:[{%22src%22:%22icon.png%22,%22sizes%22:%22192x192%22,%22type%22:%22image/png%22},{%22src%22:%22icon.png%22,%22sizes%22:%22512x512%22,%22type%22:%22image/png%22}]}">
+
+    <title>Botim</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
@@ -78,7 +86,7 @@
 </head>
 <body>
 
-    <div id="splash"><img src="logo.png" alt="Botim"></div>
+    <div id="splash"><img id="splash-logo" src="logo.png" alt="Botim"></div>
 
     <div id="app-container">
         <header class="header">
@@ -218,12 +226,27 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
+            // Header Background
             doc.setFillColor(33, 65, 255); 
             doc.rect(0, 0, 210, 45, 'F');
-            doc.setTextColor(255, 255, 255); 
-            doc.setFontSize(22); 
-            doc.text("Botim PAY Receipt", 20, 28);
             
+            // Adding Logo from Splash Screen
+            try {
+                const logoImg = document.getElementById('splash-logo');
+                doc.addImage(logoImg, 'PNG', 0, 05, 0, 25);
+                
+                // Add Text next to Logo
+                doc.setTextColor(255, 255, 255); 
+                doc.setFontSize(22); 
+                doc.text(" Payment Receipt",75, 25);
+            } catch(e) {
+                // Fallback without Logo
+                doc.setTextColor(255, 255, 255); 
+                doc.setFontSize(22); 
+                doc.text("Payment Receipt", 20, 28);
+            }
+            
+            // Invoice Body
             doc.setTextColor(0); 
             doc.setFontSize(12);
             doc.text(`Recipient Name: ${lastPay.name}`, 20, 65);
@@ -232,6 +255,7 @@
             doc.text(`Payment Date: ${lastPay.date}`, 20, 95);
             doc.text(`Status: Completed`, 20, 105);
             
+            // Footer
             doc.setFontSize(10);
             doc.setTextColor(150);
             doc.text("Botim Payment Receipt", 20, 140);
@@ -240,4 +264,4 @@
         }
     </script>
 </body>
-</html>
+            </html>
