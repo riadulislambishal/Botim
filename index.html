@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Botim Pay Pro - Final</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+        body { background-color: #0c0d0f; color: #fff; overflow-x: hidden; }
+
+        /* --- 1. Splash Screen --- */
+        #splash {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #2141FF; display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        #splash img { width: 100px; }
+
+        /* --- 2. Main Container --- */
+        #app-container { display: none; padding: 15px; padding-bottom: 80px; }
+        
+        /* Header - Fixed to match symmetry */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 10px; }
+        .logo-area { display: flex; align-items: center; font-size: 24px; font-weight: bold; }
+        .pay-tag { background: #fff; color: #000; padding: 1px 5px; border-radius: 4px; font-size: 11px; margin-left: 5px; }
+        .profile-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid #333; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 30px; }
+        .tab { padding: 8px 18px; border-radius: 20px; background: #1a1c1f; color: #888; font-size: 14px; }
+        .tab.active { background: #333; color: #fff; }
+
+        /* Balance Section - NO Underline */
+        .balance-label { color: #888; font-size: 13px; margin-bottom: 8px; display: flex; align-items: center; gap: 5px; }
+        .balance-row { display: flex; align-items: center; margin-bottom: 30px; font-size: 48px; font-weight: bold; }
+        
+        /* Direct Editable Style without underline */
+        #display-amount { cursor: text; outline: none; transition: color 0.2s; }
+        #display-amount:focus { color: #2e53ff; }
+
+        /* Actions */
+        .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 40px; }
+        .action-item { text-align: center; cursor: pointer; }
+        .icon-box { background: #2e53ff; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 22px; transition: 0.2s; }
+        .icon-box:active { transform: scale(0.9); }
+        .action-label { font-size: 12px; color: #fff; }
+
+        /* Beneficiaries - Same as Ref */
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+        .beneficiaries { display: flex; gap: 15px; margin-bottom: 35px; }
+        .b-circle { width: 50px; height: 50px; border-radius: 50%; background: #fef1e1; color: #d09c64; display: flex; align-items: center; justify-content: center; font-weight: bold; position: relative; }
+        .b-circle.blue { background: #e2f4fe; color: #6898d0; }
+        .b-circle.add { background: #1a1c1f; color: #fff; font-size: 24px; border: 1px dashed #444; }
+        .status-dot { width: 10px; height: 10px; background: #4caf50; border-radius: 50%; position: absolute; top: 0; right: 0; border: 2px solid #0c0d0f; }
+        .b-name { font-size: 12px; text-align: center; color: #888; margin-top: 5px;}
+
+        /* To Do Card - Symmetry fix */
+        .todo-card { background: #1a1c1f; padding: 20px; border-radius: 15px; margin-bottom: 20px; position: relative; }
+        .close-btn { position: absolute; top: 10px; right: 15px; color: #444; cursor: pointer;}
+        .todo-content { display: flex; align-items: center; gap: 15px; color: #888; font-size: 13px; line-height: 1.4; }
+        .todo-btn { width: 100%; background: #2e53ff; color: #fff; border: none; padding: 12px; border-radius: 10px; margin-top: 15px; font-weight: bold; cursor: pointer; }
+
+        /* Success Sheet */
+        #success-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1000; }
+        #success-sheet { position: absolute; bottom: 0; width: 100%; background: #fff; color: #000; padding: 40px 20px 30px; border-radius: 25px 25px 0 0; text-align: center; transform: translateY(100%); transition: 0.4s cubic-bezier(0.17, 0.67, 0.83, 0.67); }
+        .show-sheet { transform: translateY(0) !important; }
+        .check-circle { width: 70px; height: 70px; background: #e8f5e9; color: #2e7d32; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 35px; border: 3px solid #4caf50; }
+        .confirm-btn { background: #2e53ff; color: #fff; border: none; width: 100%; padding: 15px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+
+        /* Input Modal */
+        #pay-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; background: #1a1c1f; padding: 25px; border-radius: 20px; z-index: 2000; border: 1px solid #333; }
+        input.modal-input { width: 100%; padding: 14px; margin-bottom: 15px; border-radius: 10px; border: none; background: #262626; color: #fff; font-size: 16px; outline: none; }
+    </style>
+</head>
+<body>
+
+    <div id="splash"><img src="logo.png" alt="Botim"></div>
+
+    <div id="app-container">
+        <header class="header">
+            <div class="logo-area">botim <span class="pay-tag">PAY</span></div>
+            <div style="display:flex; align-items:center; gap:15px;">
+                <div style="background:#1a1c1f; padding:8px; border-radius:8px; font-size: 20px;">💳</div>
+                <img src="profile.jpg" alt="P" class="profile-img">
+            </div>
+        </header>
+
+        <div class="tabs"><div class="tab active">Pay</div><div class="tab">Credit</div><div class="tab">Invest</div></div>
+
+        <div class="balance-section">
+            <div class="balance-label">Wallet Balance • 🇦🇪</div>
+            <div class="balance-row">
+                <span>AED&nbsp;</span>
+                <span id="display-amount" contenteditable="true" spellcheck="false">634.70</span>
+                <span style="margin-left:auto; font-size:20px; color:#333;">👁️</span>
+            </div>
+        </div>
+
+        <div class="actions">
+            <div class="action-item" onclick="openPayModal()"><div class="icon-box">↗</div><div class="action-label">Send</div></div>
+            <div class="action-item"><div class="icon-box">↘</div><div class="action-label">Request</div></div>
+            <div class="action-item"><div class="icon-box">+</div><div class="action-label">Add funds</div></div>
+            <div class="action-item"><div class="icon-box">→</div><div class="action-label">Withdraw</div></div>
+        </div>
+
+        <div class="section-title">Recent beneficiaries</div>
+        <div class="beneficiaries">
+            <div class="b-item"><div class="b-circle">M <div class="status-dot"></div></div><div class="b-name">Mofiz...</div></div>
+            <div class="b-item"><div class="b-circle blue">M <div class="status-dot"></div></div><div class="b-name">Mir M...</div></div>
+            <div class="b-item"><div class="b-circle add">+</div><div class="b-name">Add</div></div>
+        </div>
+        
+        <div class="todo-card">
+            <p style="font-weight:bold; margin-bottom:10px; color:#fff;">To do</p>
+            <div class="todo-content">
+                <div style="font-size:30px;">💳</div>
+                <p>No battery? No problem. Get your physical card for offline use now.</p>
+            </div>
+            <button class="todo-btn">Order physical card</button>
+        </div>
+    </div>
+
+    <div id="pay-modal">
+        <h3 style="margin-bottom:20px; color:#fff;">Send Money</h3>
+        <input type="text" id="p-name" class="modal-input" placeholder="Recipient Name">
+        <input type="number" id="p-amount" class="modal-input" placeholder="Amount (AED)">
+        <input type="text" id="p-id" class="modal-input" placeholder="Transaction ID (Optional)">
+        <button class="confirm-btn" onclick="confirmPayment()">Confirm Payment</button>
+        <p onclick="document.getElementById('pay-modal').style.display='none'" style="text-align:center; color:#888; margin-top:15px; cursor:pointer;">Cancel</p>
+    </div>
+
+    <div id="success-modal">
+        <div id="success-sheet">
+            <div class="check-circle">✓</div>
+            <h2 style="margin-bottom:10px;">Payment Successful</h2>
+            <p id="success-desc" style="color:#666; font-size:15px; margin-bottom:20px;"></p>
+            <button class="confirm-btn" onclick="closeSuccess()">Back to Wallet</button>
+            <p onclick="downloadInvoice()" style="margin-top:15px; color:#2e53ff; font-weight:bold; cursor:pointer;">Download Invoice</p>
+        </div>
+    </div>
+
+    <script>
+        let currentBalance = 634.70;
+
+        window.onload = function() {
+            setTimeout(() => {
+                document.getElementById('splash').style.display = 'none';
+                document.getElementById('app-container').style.display = 'block';
+            }, 3000);
+        };
+
+        const balanceEl = document.getElementById('display-amount');
+
+        // Logic: Blur (tap baire) dile ba Enter chaple variable update hobe
+        balanceEl.addEventListener('blur', function() {
+            let val = parseFloat(this.innerText.trim());
+            if (!isNaN(val)) {
+                currentBalance = val;
+                this.innerText = currentBalance.toFixed(2);
+            } else {
+                this.innerText = currentBalance.toFixed(2);
+            }
+        });
+
+        balanceEl.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.blur();
+            }
+        });
+
+        function openPayModal() { document.getElementById('pay-modal').style.display = 'block'; }
+
+        let lastPay = {};
+
+        function confirmPayment() {
+            const name = document.getElementById('p-name').value;
+            const amountInput = document.getElementById('p-amount').value;
+            const txid = document.getElementById('p-id').value || "BT" + Math.floor(Math.random()*900000 + 100000);
+
+            if(!name || !amountInput) return alert("Enter Name and Amount");
+
+            const amountToPay = parseFloat(amountInput);
+
+            if(amountToPay > currentBalance) {
+                alert("Insufficient Balance!");
+                return;
+            }
+
+            // Real math: Balance kete newa
+            currentBalance -= amountToPay;
+            balanceEl.innerText = currentBalance.toFixed(2);
+
+            lastPay = { name, amount: amountToPay, txid, date: new Date().toLocaleString() };
+
+            // Modal swich
+            document.getElementById('pay-modal').style.display = 'none';
+            document.getElementById('success-desc').innerHTML = `AED <b>${amountToPay.toFixed(2)}</b> sent to <br><b>${name}</b>`;
+            document.getElementById('success-modal').style.display = 'block';
+            setTimeout(() => { document.getElementById('success-sheet').classList.add('show-sheet'); }, 100);
+
+            // Clear input fields
+            document.getElementById('p-name').value = "";
+            document.getElementById('p-amount').value = "";
+            document.getElementById('p-id').value = "";
+        }
+
+        function closeSuccess() {
+            document.getElementById('success-sheet').classList.remove('show-sheet');
+            setTimeout(() => { document.getElementById('success-modal').style.display = 'none'; }, 400);
+        }
+
+        function downloadInvoice() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFillColor(33, 65, 255); 
+            doc.rect(0, 0, 210, 45, 'F');
+            doc.setTextColor(255, 255, 255); 
+            doc.setFontSize(22); 
+            doc.text("Botim PAY Receipt", 20, 28);
+            
+            doc.setTextColor(0); 
+            doc.setFontSize(12);
+            doc.text(`Recipient Name: ${lastPay.name}`, 20, 65);
+            doc.text(`Amount Paid: AED ${lastPay.amount.toFixed(2)}`, 20, 75);
+            doc.text(`Transaction ID: ${lastPay.txid}`, 20, 85);
+            doc.text(`Payment Date: ${lastPay.date}`, 20, 95);
+            doc.text(`Status: Completed`, 20, 105);
+            
+            doc.setFontSize(10);
+            doc.setTextColor(150);
+            doc.text("Botim Payment Receipt", 20, 140);
+            
+            doc.save(`Invoice_${lastPay.name.replace(/\s+/g, '_')}.pdf`);
+        }
+    </script>
+</body>
+</html>
